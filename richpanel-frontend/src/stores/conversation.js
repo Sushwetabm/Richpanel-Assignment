@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import axios from "axios";
 import { io } from "socket.io-client";
+const API = import.meta.env.VITE_API_BASE_URL;
 
 export const useConversationStore = defineStore("conversation", () => {
   const conversations = ref([]);
@@ -46,7 +47,8 @@ export const useConversationStore = defineStore("conversation", () => {
     try {
       isLoading.value = true;
       error.value = null;
-      const { data } = await axios.get("/api/conversations");
+      const { data } = await axios.get(`${API}/api/conversations`);
+
       conversations.value = data.data.conversations;
     } catch (err) {
       error.value =
@@ -62,8 +64,9 @@ export const useConversationStore = defineStore("conversation", () => {
       isLoading.value = true;
       error.value = null;
       const { data } = await axios.get(
-        `/api/conversations/${conversationId}/messages`
+        `${API}/api/conversations/${conversationId}/messages`
       );
+
       messages.value = data.data.messages;
       selectedConversationId.value = conversationId;
       joinConversation(conversationId);
@@ -78,7 +81,7 @@ export const useConversationStore = defineStore("conversation", () => {
   const sendMessage = async ({ conversationId, messageText }) => {
     try {
       const { data } = await axios.post(
-        `/api/conversations/${conversationId}/reply`,
+        `${API}/api/conversations/${conversationId}/reply`,
         {
           messageText,
         }

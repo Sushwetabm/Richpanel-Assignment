@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import axios from "axios";
+const API = import.meta.env.VITE_API_BASE_URL;
 
 export const useFacebookStore = defineStore("facebook", () => {
   const connectedPage = ref(null);

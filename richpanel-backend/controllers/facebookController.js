@@ -1,18 +1,22 @@
-const axios = require('axios');
-const FacebookConnection = require('../models/FacebookConnection');
-const Conversation = require('../models/Conversation');
-const Message = require('../models/Message');
-const AppError = require('../utils/appError');
-const catchAsync = require('../utils/catchAsync');
-const { getFacebookAuthUrl, exchangeCodeForToken, getPageAccessToken } = require('../config/facebook');
+const axios = require("axios");
+const FacebookConnection = require("../models/FacebookConnection");
+const Conversation = require("../models/Conversation");
+const Message = require("../models/Message");
+const AppError = require("../utils/appError");
+const catchAsync = require("../utils/catchAsync");
+const {
+  getFacebookAuthUrl,
+  exchangeCodeForToken,
+  getPageAccessToken,
+} = require("../config/facebook");
 
 exports.getAuthUrl = catchAsync(async (req, res, next) => {
   const authUrl = getFacebookAuthUrl();
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      authUrl
-    }
+      authUrl,
+    },
   });
 });
 
@@ -38,39 +42,39 @@ exports.handleCallback = catchAsync(async (req, res, next) => {
     userId,
     pageId: page.id,
     pageName: page.name,
-    accessToken: pageAccessToken
+    accessToken: pageAccessToken,
   });
 
   // Subscribe to webhooks
   await axios.post(
     `https://graph.facebook.com/v12.0/${page.id}/subscribed_apps`,
     {
-      subscribed_fields: ['messages', 'messaging_postbacks'],
-      access_token: pageAccessToken
+      subscribed_fields: ["messages", "messaging_postbacks"],
+      access_token: pageAccessToken,
     }
   );
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      pageName: page.name
-    }
+      pageName: page.name,
+    },
   });
 });
 
 exports.disconnect = catchAsync(async (req, res, next) => {
   await FacebookConnection.findOneAndDelete({ userId: req.user.id });
-  
+
   res.status(204).json({
-    status: 'success',
-    data: null
+    status: "success",
+    data: null,
   });
 });
 
 exports.verifyWebhook = (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
 
   if (mode && token === process.env.FACEBOOK_VERIFY_TOKEN) {
     res.status(200).send(challenge);
@@ -81,12 +85,12 @@ exports.verifyWebhook = (req, res) => {
 
 exports.handleWebhook = catchAsync(async (req, res) => {
   const { entry } = req.body;
-  
+
   // Process each entry
   for (const pageEntry of entry) {
     const pageId = pageEntry.id;
     const messagingEvents = pageEntry.messaging;
-    
+
     if (messagingEvents) {
       for (const event of messagingEvents) {
         // Process message event
@@ -96,15 +100,16 @@ exports.handleWebhook = catchAsync(async (req, res) => {
       }
     }
   }
-  
-  res.status(200).send('EVENT_RECEIVED');
+
+  res.status(200).send("EVENT_RECEIVED");
 });
 
+// Make sure this is declared as async
 async function processMessage(event, pageId) {
   const senderId = event.sender.id;
   const messageText = event.message.text;
   const timestamp = event.timestamp;
-  
+
   // Find the Facebook connection
   const connection = await FacebookConnection.findOne({ pageId });
   if (!connection) return;
@@ -112,7 +117,7 @@ async function processMessage(event, pageId) {
   // Find or create conversation
   let conversation = await Conversation.findOne({
     userId: connection.userId,
-    customerId: senderId
+    customerId: senderId,
   });
 
   if (!conversation) {
@@ -126,8 +131,8 @@ async function processMessage(event, pageId) {
       customerId: senderId,
       customerName: senderData.name,
       customerEmail: senderData.email || null,
-      platform: 'messenger',
-      lastMessageAt: new Date(parseInt(timestamp))
+      platform: "messenger",
+      lastMessageAt: new Date(parseInt(timestamp)),
     });
   } else {
     // Update last message time
@@ -139,12 +144,12 @@ async function processMessage(event, pageId) {
   const message = await Message.create({
     conversationId: conversation._id,
     messageText,
-    senderType: 'customer',
+    senderType: "customer",
     fbMessageId: event.message.mid,
-    createdAt: new Date(parseInt(timestamp))
+    createdAt: new Date(parseInt(timestamp)),
   });
 
   // Emit real-time update via Socket.io
-  const io = req.app.get('socketio');
-  io.to(conversation._id.toString()).emit('newMessage', message);
+  const io = req.app.get("socketio");
+  io.to(conversation._id.toString()).emit("newMessage", message);
 }

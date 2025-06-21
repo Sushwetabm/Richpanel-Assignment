@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-
+const API = import.meta.env.VITE_API_BASE_URL;
 export const useAuthStore = defineStore("auth", () => {
   const user = ref(null);
   const isAuthenticated = ref(false);
@@ -32,7 +32,7 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       isLoading.value = true;
       error.value = null;
-      const { data } = await axios.post("/api/auth/register", userData);
+      const { data } = await axios.post(`${API}/api/auth/register`, userData);
       localStorage.setItem("token", data.token);
       user.value = data.data.user;
       isAuthenticated.value = true;
@@ -49,7 +49,7 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       isLoading.value = true;
       error.value = null;
-      const { data } = await axios.post("/api/auth/login", credentials);
+      const { data } = await axios.post(`${API}/api/auth/login`, credentials);
       localStorage.setItem("token", data.token);
       user.value = data.data.user;
       isAuthenticated.value = true;
@@ -64,7 +64,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const logout = async () => {
     try {
-      await axios.get("/api/auth/logout");
+      await axios.get(`${API}/api/auth/logout`);
       localStorage.removeItem("token");
       user.value = null;
       isAuthenticated.value = false;
